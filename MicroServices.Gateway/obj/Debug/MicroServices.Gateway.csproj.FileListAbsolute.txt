@@ -1,0 +1,14 @@
+E:\tools\开源示例\MicroServices.Gateway\MicroServices.Gateway\bin\MicroServices.Gateway.dll.config
+E:\tools\开源示例\MicroServices.Gateway\MicroServices.Gateway\bin\MicroServices.Gateway.dll
+E:\tools\开源示例\MicroServices.Gateway\MicroServices.Gateway\bin\MicroServices.Gateway.pdb
+E:\tools\开源示例\MicroServices.Gateway\MicroServices.Gateway\bin\Nancy.dll
+E:\tools\开源示例\MicroServices.Gateway\MicroServices.Gateway\bin\Nancy.Hosting.Aspnet.dll
+E:\tools\开源示例\MicroServices.Gateway\MicroServices.Gateway\bin\Newtonsoft.Json.dll
+E:\tools\开源示例\MicroServices.Gateway\MicroServices.Gateway\bin\RestSharp.dll
+E:\tools\开源示例\MicroServices.Gateway\MicroServices.Gateway\bin\Nancy.xml
+E:\tools\开源示例\MicroServices.Gateway\MicroServices.Gateway\bin\Nancy.Hosting.Aspnet.xml
+E:\tools\开源示例\MicroServices.Gateway\MicroServices.Gateway\bin\Newtonsoft.Json.xml
+E:\tools\开源示例\MicroServices.Gateway\MicroServices.Gateway\bin\RestSharp.xml
+E:\tools\开源示例\MicroServices.Gateway\MicroServices.Gateway\obj\Debug\MicroServices.Gateway.csprojResolveAssemblyReference.cache
+E:\tools\开源示例\MicroServices.Gateway\MicroServices.Gateway\obj\Debug\MicroServices.Gateway.dll
+E:\tools\开源示例\MicroServices.Gateway\MicroServices.Gateway\obj\Debug\MicroServices.Gateway.pdb
