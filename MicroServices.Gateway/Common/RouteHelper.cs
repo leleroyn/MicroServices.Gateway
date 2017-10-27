@@ -38,7 +38,7 @@ namespace MicroServices.Gateway.Common
                           v => v.Select(o => o).ToList()
                          );
 
-                    //跨配置文件Command必须保持唯一
+                    //跨配置文件BusinessCode必须保持唯一
                     foreach (var route in singleDic)
                         routeDic.Add(route.Key, route.Value);
                 }

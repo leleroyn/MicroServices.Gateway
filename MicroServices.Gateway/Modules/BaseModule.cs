@@ -25,7 +25,7 @@ namespace MicroServices.Gateway.Modules
             DateTime elapsedTime = DateTime.Now;
             bool ignoreLog = false;
             Before += ctx =>
-            {
+            { 
                 var route = GetRequestData(ctx.Request);
                 OptimalRoute = route;
                 ignoreLog = SettingsHelper.IgnoreLogChannel(HeadData.RequestFrom);
@@ -59,6 +59,7 @@ namespace MicroServices.Gateway.Modules
                             "Error, ErrorTime:{0}, RequestBody:{1}, RouteData:{2}, ErrorMessage:{3}",
                             DateTime.Now, RequestContent, 
                             JsonConvert.SerializeObject(OptimalRoute), ex.Message), ex);
+               
                throw ex;
             };
         }
@@ -68,11 +69,16 @@ namespace MicroServices.Gateway.Modules
         /// </summary>    
         protected string GeneralCacheKey()
         {  
-            string key = string.Join("_", HeadData.RequestFrom, HeadData.BusinessCode, HeadData.Version);         
-            var requestBodyObj = JsonConvert.DeserializeObject<Dictionary<string,object>>(RequestContent).OrderBy(o=>o.Key);
-            foreach(var p in requestBodyObj)
+            string key = string.Join("_", HeadData.RequestFrom, HeadData.BusinessCode, HeadData.Version);
+            var requestObj = JsonConvert.DeserializeObject<dynamic>(RequestContent);
+            string requestBodyStr = Convert.ToString(requestObj.RequestBody);
+            if (!string.IsNullOrWhiteSpace(requestBodyStr))
             {
-                key = string.Join("_",key,string.Join("_", p.Key, p.Value));
+                var requestBodyObj = JsonConvert.DeserializeObject<Dictionary<string, object>>(requestBodyStr).OrderBy(o => o.Key);
+                foreach (var p in requestBodyObj)
+                {
+                    key = string.Join("_", key, string.Join("_", p.Key, p.Value));
+                }
             }
             return key.ToLower();
         }
