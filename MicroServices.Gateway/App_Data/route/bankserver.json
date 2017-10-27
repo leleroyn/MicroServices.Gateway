@@ -1,0 +1,17 @@
+﻿[
+  //-- 银行接口
+  {
+    "Description": "绑卡",
+    "BusinessCode": "BankServer.BindCard",
+    "Handle": "BankServer/BindCard",
+    "RequestFrom": "WEB",
+    "Version": "1.0.0",
+    "MicroService": "bankserver"
+  },
+  {
+    "Description": "解绑",
+    "BusinessCode": "BankServer.UnBindCard",
+    "Handle": "BankServer/UnBindCard",
+    "MicroService": "bankserver"
+  }
+]
