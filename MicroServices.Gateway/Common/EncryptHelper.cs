@@ -24,8 +24,7 @@ namespace MicroServices.Gateway.Common
             if (string.IsNullOrEmpty(srcData) || string.IsNullOrEmpty(encryPwd))
             {
                 return string.Empty;
-            }
-            encryPwd =  GetMd5Hash(encryPwd);
+            }          
             string key = encryPwd.Substring(0, 8);
             var byteKey = Encoding.UTF8.GetBytes(key);
             var byteIV = Encoding.UTF8.GetBytes(key);
@@ -55,8 +54,7 @@ namespace MicroServices.Gateway.Common
             if (string.IsNullOrEmpty(encryptData) || string.IsNullOrEmpty(encryPwd))
             {
                 return string.Empty;
-            }
-            encryPwd = GetMd5Hash(encryPwd);
+            }          
             string key = encryPwd.Substring(0, 8);
             var byteKey = Encoding.UTF8.GetBytes(key);
             var byteIV = Encoding.UTF8.GetBytes(key);
