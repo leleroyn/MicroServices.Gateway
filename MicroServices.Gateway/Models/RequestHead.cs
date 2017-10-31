@@ -24,7 +24,7 @@ namespace MicroServices.Gateway.Models
         /// <summary>
         /// 请求结果缓存时间
         /// </summary>
-        public int  Expire { get; set; }
+        public int?  Expire { get; set; }
 
         /// <summary>
         /// 业务编码

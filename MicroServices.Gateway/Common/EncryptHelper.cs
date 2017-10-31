@@ -18,13 +18,8 @@ namespace MicroServices.Gateway.Common
         /// </summary>
         /// <param name="srcData">待加密的字符串</param>
         /// <param name="encryPwd">加密密钥</param>
-        /// <returns>加密成功返回加密后的字符串,失败返回源串</returns>
         public static string DESEncrypt(string srcData, string encryPwd)
         {
-            if (string.IsNullOrEmpty(srcData) || string.IsNullOrEmpty(encryPwd))
-            {
-                return string.Empty;
-            }          
             string key = encryPwd.Substring(0, 8);
             var byteKey = Encoding.UTF8.GetBytes(key);
             var byteIV = Encoding.UTF8.GetBytes(key);
@@ -48,13 +43,8 @@ namespace MicroServices.Gateway.Common
         /// </summary>
         /// <param name="encryptData">待解密的字符串</param>
         /// <param name="encryPwd">解密密钥</param>
-        /// <returns>解密成功返回解密后的字符串,失败返源串</returns>
         public static string DESDecrypt(string encryptData, string encryPwd)
         {
-            if (string.IsNullOrEmpty(encryptData) || string.IsNullOrEmpty(encryPwd))
-            {
-                return string.Empty;
-            }          
             string key = encryPwd.Substring(0, 8);
             var byteKey = Encoding.UTF8.GetBytes(key);
             var byteIV = Encoding.UTF8.GetBytes(key);
@@ -64,20 +54,15 @@ namespace MicroServices.Gateway.Common
                 int i = (Convert.ToInt32(encryptData.Substring(x * 2, 2), 16));
                 inputByteArray[x] = (byte)i;
             }
-            try
-            {
-                DESCryptoServiceProvider des = new DESCryptoServiceProvider();
-                MemoryStream ms = new MemoryStream();
-                CryptoStream cs = new CryptoStream(ms, des.CreateDecryptor(byteKey, byteIV), CryptoStreamMode.Write);
-                cs.Write(inputByteArray, 0, inputByteArray.Length);
-                cs.FlushFinalBlock();
-                Encoding encoding = new UTF8Encoding();
-                return encoding.GetString(ms.ToArray());
-            }
-            catch
-            {
-                return "";
-            }
+
+            DESCryptoServiceProvider des = new DESCryptoServiceProvider();
+            MemoryStream ms = new MemoryStream();
+            CryptoStream cs = new CryptoStream(ms, des.CreateDecryptor(byteKey, byteIV), CryptoStreamMode.Write);
+            cs.Write(inputByteArray, 0, inputByteArray.Length);
+            cs.FlushFinalBlock();
+            Encoding encoding = new UTF8Encoding();
+            return encoding.GetString(ms.ToArray());
+
         }
 
         #endregion

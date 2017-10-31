@@ -89,8 +89,9 @@ namespace MicroServices.Gateway.Modules
         protected async Task<string> HandleRequest(CustomRouteData route)
         {
             string response;
-          
-            if (HeadData.Expire > 0)
+            int expire = HeadData.Expire.GetValueOrDefault();
+
+            if (expire > 0)
             {
                 string key = GeneralCacheKey();
                 var cacheValue = CacheHelper.Get(key);
@@ -102,7 +103,7 @@ namespace MicroServices.Gateway.Modules
                 else
                 {
                     response = await HttpClient.PostAsync(route.Handle, RequestContent);
-                    CacheHelper.Set(key, response, TimeSpan.FromSeconds(HeadData.Expire));
+                    CacheHelper.Set(key, response, TimeSpan.FromSeconds(expire));
                     FromCache = false;
                 }
             }
