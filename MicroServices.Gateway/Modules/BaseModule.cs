@@ -25,7 +25,7 @@ namespace MicroServices.Gateway.Modules
             DateTime elapsedTime = DateTime.Now;
             bool ignoreLog = false;
             Before += ctx =>
-            { 
+            {
                 var route = GetRequestData(ctx.Request);
                 OptimalRoute = route;
                 ignoreLog = SettingsHelper.IgnoreLogChannel(HeadData.RequestFrom);
@@ -43,24 +43,32 @@ namespace MicroServices.Gateway.Modules
                         response = Encoding.UTF8.GetString(respData.ToArray());
                     }
                     string requestInfo = string.Format(
-                        "Success, Elapsed:{0}(s), RequestBody:{1}, ResponseBody:{2}, RouteData:{3}, FromCahle:{4}",
+                        "Success, Elapsed:{0}(s), RequestContent:{1}, ResponseContent:{2}, RouteData:{3}, FromCache:{4}",
                         (DateTime.Now - elapsedTime).TotalSeconds, RequestContent, response,
-                        JsonConvert.SerializeObject(OptimalRoute), 
+                        JsonConvert.SerializeObject(OptimalRoute),
                         FromCache);
-                    LogHelper.Info(HeadData.BusinessCode, requestInfo);                      
+                    LogHelper.Info(HeadData.BusinessCode, requestInfo);
                 }
             };
 
             OnError += (ctx, ex) =>
-            {              
-                    LogHelper.Error(
-                        HeadData == null ? "" : HeadData.BusinessCode,
-                        string.Format(
-                            "Error, ErrorTime:{0}, RequestBody:{1}, RouteData:{2}, ErrorMessage:{3}",
-                            DateTime.Now, RequestContent, 
-                            JsonConvert.SerializeObject(OptimalRoute), ex.Message), ex);
-               
-               throw ex;
+            {
+                LogHelper.Error(
+                    HeadData == null ? "" : HeadData.BusinessCode,
+                    string.Format(
+                        "Error, ErrorTime:{0}, RequestContent:{1}, RouteData:{2}, ErrorMessage:{3}",
+                        DateTime.Now, RequestContent,
+                        JsonConvert.SerializeObject(OptimalRoute), ex.Message), ex);
+
+                var resp = new Response();
+                resp.StatusCode = HttpStatusCode.BadRequest;
+                resp.Contents = stream =>
+                {
+                    var bites = Encoding.UTF8.GetBytes(ex.ToString());
+                    stream.Write(bites, 0, bites.Length);
+                };
+                return resp;
+
             };
         }
 
@@ -68,7 +76,7 @@ namespace MicroServices.Gateway.Modules
         /// 生成缓存Key
         /// </summary>    
         protected string GeneralCacheKey()
-        {  
+        {
             string key = string.Join("_", HeadData.RequestFrom, HeadData.BusinessCode, HeadData.Version);
             var requestObj = JsonConvert.DeserializeObject<dynamic>(RequestContent);
             string requestBodyStr = Convert.ToString(requestObj.RequestBody);
@@ -86,9 +94,9 @@ namespace MicroServices.Gateway.Modules
         /// <summary>
         /// 请求处理
         /// </summary>
-        protected async Task<string> HandleRequest(CustomRouteData route)
+        protected async Task<HttpResult> HandleRequest(CustomRouteData route)
         {
-            string response;
+            HttpResult result = new HttpResult();
             int expire = HeadData.Expire.GetValueOrDefault();
 
             if (expire > 0)
@@ -97,22 +105,26 @@ namespace MicroServices.Gateway.Modules
                 var cacheValue = CacheHelper.Get(key);
                 if (cacheValue != null)
                 {
-                    response = cacheValue;
+                    result.Content = cacheValue;
+                    result.HttpStatus = (int)HttpStatusCode.OK;
                     FromCache = true;
                 }
                 else
                 {
-                    response = await HttpClient.PostAsync(route.Handle, RequestContent);
-                    CacheHelper.Set(key, response, TimeSpan.FromSeconds(expire));
+                    result = await HttpClient.PostAsync(route.Handle, RequestContent);
+                    if (result.HttpStatus == (int)HttpStatusCode.OK)
+                    {
+                        CacheHelper.Set(key, result.Content, TimeSpan.FromSeconds(expire));
+                    }
                     FromCache = false;
                 }
             }
             else
             {
-                response = await HttpClient.PostAsync(route.Handle, RequestContent);
+                result = await HttpClient.PostAsync(route.Handle, RequestContent);
                 FromCache = false;
             }
-            return response;
+            return result;
         }
 
 
@@ -124,13 +136,17 @@ namespace MicroServices.Gateway.Modules
             var requestLength = request.Body.Length;
             var requestBites = new Byte[requestLength];
             request.Body.Read(requestBites, 0, (int)requestLength);
-            RequestContent = Encoding.UTF8.GetString(requestBites);      
+            var reqContent = Encoding.UTF8.GetString(requestBites);
+
+            reqContent = System.Web.HttpUtility.UrlDecode(reqContent);
+            var base64Bits = Convert.FromBase64String(reqContent);
+            RequestContent = Encoding.UTF8.GetString(base64Bits);
 
             var requestObj = JsonConvert.DeserializeObject<dynamic>(RequestContent);
             var requestHeadObj = JsonConvert.DeserializeObject<dynamic>(Convert.ToString(requestObj.RequestHead));
 
             HeadData = new RequestHead { BusinessCode = requestHeadObj.BusinessCode, Expire = requestHeadObj.Expire, RequestFrom = requestHeadObj.RequestFrom, RequestSN = requestHeadObj.RequestSN, RequestTime = requestHeadObj.RequestTime, Version = requestHeadObj.Version };
-           
+
             CustomRouteData route = RouteHelper.GetOptimalRoute(HeadData.BusinessCode, HeadData.Version, HeadData.RequestFrom);
             if (route == null)
                 throw new Exception("请求路由不存在");

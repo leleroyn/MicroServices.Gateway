@@ -16,8 +16,8 @@ namespace MicroServices.Gateway.Common
 {
     public static class HttpClient
     {
-        public static async Task<string> PostAsync(string url, string requestContent)
-        {           
+        public static async Task<HttpResult> PostAsync(string url, string requestContent)
+        {
             RestRequest request = new RestRequest(Method.POST);
             request.AddBody(requestContent);
             var client = new RestClient(url)
@@ -28,7 +28,10 @@ namespace MicroServices.Gateway.Common
                 Timeout = 60000
             };
             var respones = await client.ExecuteTaskAsync(request);
-            return respones.Content;
-        }       
-    }
+            HttpResult result = new HttpResult();
+            result.Content = respones.Content;
+            result.HttpStatus = (int)respones.StatusCode;
+            return result;
+        }
+    }   
 }

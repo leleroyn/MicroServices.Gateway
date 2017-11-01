@@ -12,9 +12,13 @@ namespace MicroServices.Gateway.Modules
         public HomeModule()
         {
              Post["/Api", true] = async (x, ct) =>
-             {                      
-                 var requestResult = await HandleRequest(OptimalRoute);
-                 return requestResult;
+             {             
+                 var requestResult = await HandleRequest(OptimalRoute); 
+                 if(requestResult.HttpStatus != (int)HttpStatusCode.OK)
+                 {
+                     throw new RequestExecutionException(new Exception (requestResult.Content));
+                 }                            
+                 return requestResult.Content;
              };      
         }
     }

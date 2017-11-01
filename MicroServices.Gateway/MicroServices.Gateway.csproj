@@ -78,7 +78,7 @@
   <ItemGroup>
     <Content Include="packages.config" />
     <Content Include="App_Data\route\bankserver.json" />
-    <Content Include="App_Data\servicehost\hosts.json" />
+    <Content Include="App_Data\servicehost\bankserverhost.json" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Web.config" />
@@ -93,6 +93,7 @@
     <Compile Include="Common\RouteHelper.cs" />
     <Compile Include="Common\SettingsHelper.cs" />
     <Compile Include="Models\CustomRouteData.cs" />
+    <Compile Include="Models\HttpResult.cs" />
     <Compile Include="Models\MicroServiceRandomObject.cs" />
     <Compile Include="Models\RandomObject.cs" />
     <Compile Include="Models\RequestHead.cs" />
