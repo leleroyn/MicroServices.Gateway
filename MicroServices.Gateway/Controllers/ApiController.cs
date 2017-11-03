@@ -23,10 +23,10 @@ namespace MicroServices.Gateway.Controllers
         private IMemoryCache cache;
         private IHostingEnvironment env;
 
-        private RequestHead HeadData;
-        private CustomRouteData OptimalRoute;
-        private bool FromCache;
-        private string RequestContent;
+        private RequestHead headData;
+        private CustomRouteData optimalRoute;
+        private bool fromCache;
+        private string requestContent;
 
         public ApiController(IOptions<AppConfig> optionsAccessor, IMemoryCache cacheProvider, IHostingEnvironment hostingEnvironment)
         {
@@ -45,9 +45,9 @@ namespace MicroServices.Gateway.Controllers
         [HttpPost]
         public async Task<string> Post()
         {
-            GetRequestData(Request);
+            await GetRequestData(Request);
 
-            var requestResult = await HandleRequest(OptimalRoute);
+            var requestResult = await HandleRequest(optimalRoute);
             if (requestResult.HttpStatus != 200)
             {
                 Response.StatusCode = requestResult.HttpStatus;
@@ -60,30 +60,30 @@ namespace MicroServices.Gateway.Controllers
         /// <summary>
         /// 获取请求信息
         /// </summary>
-        void GetRequestData(HttpRequest request)
+        async Task GetRequestData(HttpRequest request)
         {
             RouteHelper routeHelper = new RouteHelper(env.ContentRootPath, cache);
 
             string reqContent = "";
             using (var buffer = new MemoryStream())
             {
-                Request.Body.CopyTo(buffer);
+                await Request.Body.CopyToAsync(buffer);
                 reqContent = Encoding.UTF8.GetString(buffer.ToArray());
             }
 
             reqContent = HttpUtility.UrlDecode(reqContent);
             var base64Bits = Convert.FromBase64String(reqContent);
-            RequestContent = Encoding.UTF8.GetString(base64Bits);
+            requestContent = Encoding.UTF8.GetString(base64Bits);
 
-            var requestObj = JsonConvert.DeserializeObject<dynamic>(RequestContent);
+            var requestObj = JsonConvert.DeserializeObject<dynamic>(requestContent);
             var requestHeadObj = JsonConvert.DeserializeObject<dynamic>(Convert.ToString(requestObj.RequestHead));
 
-            HeadData = new RequestHead { BusinessCode = requestHeadObj.BusinessCode, Expire = requestHeadObj.Expire, RequestFrom = requestHeadObj.RequestFrom, RequestSN = requestHeadObj.RequestSN, RequestTime = requestHeadObj.RequestTime, Version = requestHeadObj.Version };
+            headData = new RequestHead { BusinessCode = requestHeadObj.BusinessCode, Expire = requestHeadObj.Expire, RequestFrom = requestHeadObj.RequestFrom, RequestSN = requestHeadObj.RequestSN, RequestTime = requestHeadObj.RequestTime, Version = requestHeadObj.Version };
 
-            CustomRouteData route = routeHelper.GetOptimalRoute(HeadData.BusinessCode, HeadData.Version, HeadData.RequestFrom);
+            CustomRouteData route = routeHelper.GetOptimalRoute(headData.BusinessCode, headData.Version, headData.RequestFrom);
             if (route == null)
                 throw new Exception("请求路由不存在");
-            OptimalRoute = routeHelper.RoutingLoadBalance(route);
+            optimalRoute = routeHelper.RoutingLoadBalance(route);
         }
 
         /// <summary>
@@ -91,8 +91,8 @@ namespace MicroServices.Gateway.Controllers
         /// </summary>    
         string GeneralCacheKey()
         {
-            string key = string.Join("_", HeadData.RequestFrom, HeadData.BusinessCode, HeadData.Version);
-            var requestObj = JsonConvert.DeserializeObject<dynamic>(RequestContent);
+            string key = string.Join("_", headData.RequestFrom, headData.BusinessCode, headData.Version);
+            var requestObj = JsonConvert.DeserializeObject<dynamic>(requestContent);
             string requestBodyStr = Convert.ToString(requestObj.RequestBody);
             if (!string.IsNullOrWhiteSpace(requestBodyStr))
             {
@@ -108,7 +108,7 @@ namespace MicroServices.Gateway.Controllers
         async Task<HttpResult> HandleRequest(CustomRouteData route)
         {
             HttpResult result = new HttpResult();
-            int expire = HeadData.Expire.GetValueOrDefault();
+            int expire = headData.Expire.GetValueOrDefault();
 
             if (expire > 0)
             {
@@ -118,22 +118,22 @@ namespace MicroServices.Gateway.Controllers
                 {
                     result.Content = cacheValue.ToString();
                     result.HttpStatus = 200;
-                    FromCache = true;
+                    fromCache = true;
                 }
                 else
                 {
-                    result = await HttpHelper.PostAsync(route.Handle, RequestContent);
+                    result = await HttpHelper.PostAsync(route.Handle, requestContent);
                     if (result.HttpStatus == 200)
                     {
                         cache.Set(key, result.Content, TimeSpan.FromSeconds(expire));
                     }
-                    FromCache = false;
+                    fromCache = false;
                 }
             }
             else
             {
-                result = await HttpHelper.PostAsync(route.Handle, RequestContent);
-                FromCache = false;
+                result = await HttpHelper.PostAsync(route.Handle, requestContent);
+                fromCache = false;
             }
             return result;
         }

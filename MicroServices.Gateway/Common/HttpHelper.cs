@@ -1,17 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Dynamic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using System.Web;
-using Newtonsoft.Json;
-using RestSharp;
-using MicroServices.Gateway.Models;
+﻿using MicroServices.Gateway.Models;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace MicroServices.Gateway.Common
 {
