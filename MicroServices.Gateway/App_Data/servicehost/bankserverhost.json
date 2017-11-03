@@ -5,7 +5,7 @@
     "ApplicationKey": "ucs2017",
     "Hosts": [
       {
-        "ServiceUrl": "http://xcbankservice1.ucsmy.com/bankserver/",
+        "ServiceUrl": "https://xcbankservice1.ucsmy.com/bankserver/",
         "Weight": 50
       },
       {

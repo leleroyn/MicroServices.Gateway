@@ -11,26 +11,19 @@ using System.Web;
 using Newtonsoft.Json;
 using RestSharp;
 using MicroServices.Gateway.Models;
+using System.Net.Http;
 
 namespace MicroServices.Gateway.Common
 {
-    public static class HttpClient
+    public static class HttpHelper
     {
+        private static HttpClient client = new HttpClient();
         public static async Task<HttpResult> PostAsync(string url, string requestContent)
         {
-            RestRequest request = new RestRequest(Method.POST);
-            request.AddBody(requestContent);
-            var client = new RestClient(url)
-            {
-                Proxy = null,
-                CookieContainer = null,
-                FollowRedirects = false,
-                Timeout = 60000
-            };
-            var respones = await client.ExecuteTaskAsync(request);
             HttpResult result = new HttpResult();
-            result.Content = respones.Content;
-            result.HttpStatus = (int)respones.StatusCode;
+            var resp =  await client.PostAsync(url, new StringContent(requestContent));           
+            result.Content = await resp.Content.ReadAsStringAsync();
+            result.HttpStatus = (int)resp.StatusCode;
             return result;
         }
     }   

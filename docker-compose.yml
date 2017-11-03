@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  microservices.gateway:
+    image: microservices.gateway
+    build:
+      context: ./MicroServices.Gateway
+      dockerfile: Dockerfile

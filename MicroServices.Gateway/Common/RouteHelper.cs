@@ -6,26 +6,42 @@ using System.Linq.Expressions;
 using System.Web;
 using Newtonsoft.Json;
 using MicroServices.Gateway.Models;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace MicroServices.Gateway.Common
 {
-    public static class RouteHelper
+    public class RouteHelper
     {
-        private static readonly string RouteDataPath = Path.Combine(SettingsHelper.RootPath, "App_Data/route");
-        private static readonly string RouteDataCacheKey = "routes.json";
-        private static readonly string HostDataPath = Path.Combine(SettingsHelper.RootPath, "App_Data/servicehost");
-        private static readonly string HostDataCacheKey = "hosts.json";
+        private string _rootPath;
+        private IMemoryCache _cache;
+        private double _settingExpire; 
+        public RouteHelper(string rootPath, IMemoryCache cache, double settingExpire = 5)
+        {
+            _cache = cache;
+            _rootPath = rootPath;
+            _settingExpire = settingExpire;
+            routeDataPath = Path.Combine(_rootPath, "App_Data/route");
+            routeDataCacheKey = "routes.json";
+            hostDataPath = Path.Combine(_rootPath, "App_Data/servicehost");
+            hostDataCacheKey = "hosts.json";
+        }
+        private RouteHelper() { }
+
+        private readonly string routeDataPath;
+        private readonly string routeDataCacheKey;
+        private readonly string hostDataPath;
+        private readonly string hostDataCacheKey;
 
         /// <summary>
         /// 获取路由配置
         /// </summary>
-        public static Dictionary<string, List<CustomRouteData>> GetRouteDatas()
+        public  Dictionary<string, List<CustomRouteData>> GetRouteDatas()
         {
-            var routeDic = HttpRuntime.Cache[RouteDataCacheKey] as Dictionary<string, List<CustomRouteData>>;
+            var routeDic = _cache.Get(routeDataCacheKey) as Dictionary<string, List<CustomRouteData>>;
             if (routeDic == null)
             {
                 //加载配置目录下所有的json文件
-                string[] files = Directory.GetFiles(RouteDataPath, "*.json", SearchOption.AllDirectories);
+                string[] files = Directory.GetFiles(routeDataPath, "*.json", SearchOption.AllDirectories);
 
                 routeDic = new Dictionary<string, List<CustomRouteData>>();
                 foreach (var file in files)
@@ -43,7 +59,7 @@ namespace MicroServices.Gateway.Common
                         routeDic.Add(route.Key, route.Value);
                 }
 
-                CacheHelper.Set(RouteDataCacheKey, routeDic, files);
+                _cache.Set(routeDataCacheKey, routeDic, TimeSpan.FromMinutes(_settingExpire));
             }
             return routeDic;
         }
@@ -52,13 +68,13 @@ namespace MicroServices.Gateway.Common
         /// 获取Host配置
         /// </summary>
         /// <returns></returns>
-        public static List<ServiceHostData> GetHostDatas()
+        public  List<ServiceHostData> GetHostDatas()
         {
-            var hostDatas = HttpRuntime.Cache[HostDataCacheKey] as List<ServiceHostData>;
+            var hostDatas = _cache.Get(hostDataCacheKey) as List<ServiceHostData>;
             if (hostDatas == null)
             {
                 //加载配置目录下所有的json文件
-                string[] files = Directory.GetFiles(HostDataPath, "*.json", SearchOption.AllDirectories);
+                string[] files = Directory.GetFiles(hostDataPath, "*.json", SearchOption.AllDirectories);
 
                 hostDatas = new List<ServiceHostData>();
                 foreach (var file in files)
@@ -68,7 +84,7 @@ namespace MicroServices.Gateway.Common
                     hostDatas.AddRange(data);
                 }
 
-                CacheHelper.Set(HostDataCacheKey, hostDatas, files);
+                _cache.Set(hostDataCacheKey, hostDatas, TimeSpan.FromMinutes(_settingExpire));
             }
             return hostDatas;
         }
@@ -78,11 +94,11 @@ namespace MicroServices.Gateway.Common
         /// </summary>
         /// <param name="routeData"></param>
         /// <returns></returns>
-        public static CustomRouteData RoutingLoadBalance(
+        public  CustomRouteData RoutingLoadBalance(
             CustomRouteData routeData)
         {
             var route = new CustomRouteData
-            {             
+            {
                 BusinessCode = routeData.BusinessCode,
                 MicroService = routeData.MicroService,
                 Description = routeData.Description,
@@ -105,7 +121,7 @@ namespace MicroServices.Gateway.Common
         /// <param name="version"></param>
         /// <param name="requestFrom"></param>
         /// <returns></returns>
-        public static CustomRouteData GetOptimalRoute(string businessCode, string version, string requestFrom)
+        public CustomRouteData GetOptimalRoute(string businessCode, string version, string requestFrom)
         {
             var routeDatas = GetRouteDatas();
             var routes = routeDatas.FirstOrDefault(x => string.Equals(x.Key, businessCode, StringComparison.OrdinalIgnoreCase));
@@ -138,6 +154,6 @@ namespace MicroServices.Gateway.Common
                     .Where(x => string.IsNullOrEmpty(x.Version) || string.IsNullOrEmpty(x.RequestFrom))
                     .OrderBy(x => x.Version).ThenBy(x => x.RequestFrom)
                     .FirstOrDefault();
-        }       
+        }
     }
 }
