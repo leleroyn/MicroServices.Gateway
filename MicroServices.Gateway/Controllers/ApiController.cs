@@ -23,10 +23,10 @@ namespace MicroServices.Gateway.Controllers
         private IMemoryCache cache;
         private IHostingEnvironment env;
 
-        protected RequestHead HeadData;
-        protected CustomRouteData OptimalRoute;
-        protected bool FromCache;
-        protected string RequestContent;
+        private RequestHead HeadData;
+        private CustomRouteData OptimalRoute;
+        private bool FromCache;
+        private string RequestContent;
 
         public ApiController(IOptions<AppConfig> optionsAccessor, IMemoryCache cacheProvider, IHostingEnvironment hostingEnvironment)
         {
@@ -35,6 +35,7 @@ namespace MicroServices.Gateway.Controllers
             appConfig = optionsAccessor.Value;
         }
 
+        #region 对外接口
         [HttpGet]
         public string Get()
         {
@@ -42,7 +43,7 @@ namespace MicroServices.Gateway.Controllers
         }
 
         [HttpPost]
-        public async Task<string>  Post()
+        public async Task<string> Post()
         {
             GetRequestData(Request);
 
@@ -50,22 +51,25 @@ namespace MicroServices.Gateway.Controllers
             if (requestResult.HttpStatus != 200)
             {
                 Response.StatusCode = requestResult.HttpStatus;
-            }          
+            }
             return requestResult.Content;
         }
+        #endregion
 
+        #region 私有方法
         /// <summary>
         /// 获取请求信息
         /// </summary>
-        private void GetRequestData(HttpRequest request)
+        void GetRequestData(HttpRequest request)
         {
             RouteHelper routeHelper = new RouteHelper(env.ContentRootPath, cache);
 
             string reqContent = "";
-            using (var buffer = new MemoryStream())            {
+            using (var buffer = new MemoryStream())
+            {
                 Request.Body.CopyTo(buffer);
                 reqContent = Encoding.UTF8.GetString(buffer.ToArray());
-            }       
+            }
 
             reqContent = HttpUtility.UrlDecode(reqContent);
             var base64Bits = Convert.FromBase64String(reqContent);
@@ -85,7 +89,7 @@ namespace MicroServices.Gateway.Controllers
         /// <summary>
         /// 生成缓存Key
         /// </summary>    
-        private string GeneralCacheKey()
+        string GeneralCacheKey()
         {
             string key = string.Join("_", HeadData.RequestFrom, HeadData.BusinessCode, HeadData.Version);
             var requestObj = JsonConvert.DeserializeObject<dynamic>(RequestContent);
@@ -101,7 +105,7 @@ namespace MicroServices.Gateway.Controllers
             return key.ToLower();
         }
 
-        protected async Task<HttpResult> HandleRequest(CustomRouteData route)
+        async Task<HttpResult> HandleRequest(CustomRouteData route)
         {
             HttpResult result = new HttpResult();
             int expire = HeadData.Expire.GetValueOrDefault();
@@ -133,6 +137,8 @@ namespace MicroServices.Gateway.Controllers
             }
             return result;
         }
+
+        #endregion
 
     }
 }
