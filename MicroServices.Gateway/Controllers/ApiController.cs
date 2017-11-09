@@ -38,7 +38,7 @@ namespace MicroServices.Gateway.Controllers
         #region 对外接口
         [HttpGet]
         public string Get()
-        {
+        {           
             return string.Format("[{0}] {1}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), " Service is Online.");
         }
 
@@ -62,7 +62,7 @@ namespace MicroServices.Gateway.Controllers
         /// </summary>
         async Task GetRequestData(HttpRequest request)
         {
-            RouteHelper routeHelper = new RouteHelper(env.ContentRootPath, cache);
+            RouteHelper routeHelper = new RouteHelper(env.ContentRootPath);
 
             string reqContent = "";
             using (var buffer = new MemoryStream())

@@ -1,0 +1,19 @@
+﻿{
+  "HostTable": [
+    {
+      "Description": "bankserver",
+      "ApplicationId": "bankserver",
+      "ApplicationKey": "ucs2017",
+      "Hosts": [
+        {
+          "ServiceUrl": "https://xcbankservice1.ucsmy.com/bankserver/",
+          "Weight": 50
+        },
+        {
+          "ServiceUrl": "http://xcbankservice2.ucsmy.com/bankserver/",
+          "Weight": 50
+        }
+      ]
+    }
+  ]
+}

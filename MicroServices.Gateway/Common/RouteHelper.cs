@@ -12,55 +12,30 @@ namespace MicroServices.Gateway.Common
 {
     public class RouteHelper
     {
-        private string _rootPath;
-        private IMemoryCache _cache;
-        private double _settingExpire; 
-        public RouteHelper(string rootPath, IMemoryCache cache, double settingExpire = 5)
+        string _rootPath;
+        public RouteHelper(string rootPath)
         {
-            _cache = cache;
             _rootPath = rootPath;
-            _settingExpire = settingExpire;
-            routeDataPath = Path.Combine(_rootPath, "App_Data/route");
-            routeDataCacheKey = "routes.json";
-            hostDataPath = Path.Combine(_rootPath, "App_Data/servicehost");
-            hostDataCacheKey = "hosts.json";
+
         }
         private RouteHelper() { }
-
-        private readonly string routeDataPath;
-        private readonly string routeDataCacheKey;
-        private readonly string hostDataPath;
-        private readonly string hostDataCacheKey;
 
         /// <summary>
         /// 获取路由配置
         /// </summary>
-        public  Dictionary<string, List<CustomRouteData>> GetRouteDatas()
+        public Dictionary<string, List<CustomRouteData>> GetRouteDatas()
         {
-            var routeDic = _cache.Get(routeDataCacheKey) as Dictionary<string, List<CustomRouteData>>;
-            if (routeDic == null)
-            {
-                //加载配置目录下所有的json文件
-                string[] files = Directory.GetFiles(routeDataPath, "*.json", SearchOption.AllDirectories);
+            var routeDic = new Dictionary<string, List<CustomRouteData>>();
+            var routeSet = JsonConfigurationHelper.GetAppSettings<List<CustomRouteData>>(Path.Combine(_rootPath, "App_Data"), "routesettings.json", "RouteTable");
 
-                routeDic = new Dictionary<string, List<CustomRouteData>>();
-                foreach (var file in files)
-                {
-                    var routeContent = File.ReadAllText(file);
-                    var routeSet = JsonConvert.DeserializeObject<List<CustomRouteData>>(routeContent);
+            var singleDic = routeSet.GroupBy(o => o.BusinessCode).ToDictionary(
+                       k => k.Key,
+                       v => v.Select(o => o).ToList()
+                      );
 
-                    var singleDic = routeSet.GroupBy(o => o.BusinessCode).ToDictionary(
-                          k => k.Key,
-                          v => v.Select(o => o).ToList()
-                         );
-
-                    //跨配置文件BusinessCode必须保持唯一
-                    foreach (var route in singleDic)
-                        routeDic.Add(route.Key, route.Value);
-                }
-
-                _cache.Set(routeDataCacheKey, routeDic, TimeSpan.FromMinutes(_settingExpire));
-            }
+            //跨配置文件BusinessCode必须保持唯一
+            foreach (var route in singleDic)
+                routeDic.Add(route.Key, route.Value);
             return routeDic;
         }
 
@@ -68,25 +43,9 @@ namespace MicroServices.Gateway.Common
         /// 获取Host配置
         /// </summary>
         /// <returns></returns>
-        public  List<ServiceHostData> GetHostDatas()
+        public List<ServiceHostData> GetHostDatas()
         {
-            var hostDatas = _cache.Get(hostDataCacheKey) as List<ServiceHostData>;
-            if (hostDatas == null)
-            {
-                //加载配置目录下所有的json文件
-                string[] files = Directory.GetFiles(hostDataPath, "*.json", SearchOption.AllDirectories);
-
-                hostDatas = new List<ServiceHostData>();
-                foreach (var file in files)
-                {
-                    var content = File.ReadAllText(file);
-                    var data = JsonConvert.DeserializeObject<List<ServiceHostData>>(content);
-                    hostDatas.AddRange(data);
-                }
-
-                _cache.Set(hostDataCacheKey, hostDatas, TimeSpan.FromMinutes(_settingExpire));
-            }
-            return hostDatas;
+            return JsonConfigurationHelper.GetAppSettings<List<ServiceHostData>>(Path.Combine(_rootPath, "App_Data"), "hostsettings.json", "HostTable");
         }
 
         /// <summary>
@@ -94,7 +53,7 @@ namespace MicroServices.Gateway.Common
         /// </summary>
         /// <param name="routeData"></param>
         /// <returns></returns>
-        public  CustomRouteData RoutingLoadBalance(
+        public CustomRouteData RoutingLoadBalance(
             CustomRouteData routeData)
         {
             var route = new CustomRouteData
