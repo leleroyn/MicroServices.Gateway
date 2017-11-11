@@ -27,18 +27,12 @@ namespace MicroServices.Gateway
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddOptions();
-            services.AddMemoryCache();
-            services.Configure<AppConfig>(Configuration);
-
+            services.AddMemoryCache();   
             services.AddMvc();
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
-            var builder = new ConfigurationBuilder()
-                             .SetBasePath(env.ContentRootPath)
-                             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();

@@ -19,20 +19,18 @@ namespace MicroServices.Gateway.Controllers
     [Route("api")]
     public class ApiController : Controller
     {
-        private readonly AppConfig appConfig;
         private IMemoryCache cache;
         private IHostingEnvironment env;
 
-        private RequestHead headData;
+        private RequestHead requestHead;
         private CustomRouteData optimalRoute;
         private bool fromCache;
-        private string requestContent;
+        private string requestBody{get;  set;}
 
-        public ApiController(IOptions<AppConfig> optionsAccessor, IMemoryCache cacheProvider, IHostingEnvironment hostingEnvironment)
+        public ApiController(IMemoryCache cacheProvider, IHostingEnvironment hostingEnvironment)
         {
             env = hostingEnvironment;
-            cache = cacheProvider;
-            appConfig = optionsAccessor.Value;
+            cache = cacheProvider;           
         }
 
         #region 对外接口
@@ -64,23 +62,24 @@ namespace MicroServices.Gateway.Controllers
         {
             RouteHelper routeHelper = new RouteHelper(env.ContentRootPath);
 
-            string reqContent = "";
+            string requestBodyStr = "";
             using (var buffer = new MemoryStream())
             {
                 await Request.Body.CopyToAsync(buffer);
-                reqContent = Encoding.UTF8.GetString(buffer.ToArray());
+                requestBodyStr = Encoding.UTF8.GetString(buffer.ToArray());
             }
 
-            reqContent = HttpUtility.UrlDecode(reqContent);
-            var base64Bits = Convert.FromBase64String(reqContent);
-            requestContent = Encoding.UTF8.GetString(base64Bits);
+            requestBodyStr = HttpUtility.UrlDecode(requestBodyStr);
+            var base64Bits = Convert.FromBase64String(requestBodyStr);
+            requestBody = Encoding.UTF8.GetString(base64Bits);
 
-            var requestObj = JsonConvert.DeserializeObject<dynamic>(requestContent);
-            var requestHeadObj = JsonConvert.DeserializeObject<dynamic>(Convert.ToString(requestObj.RequestHead));
 
-            headData = new RequestHead { BusinessCode = requestHeadObj.BusinessCode, Expire = requestHeadObj.Expire, RequestFrom = requestHeadObj.RequestFrom, RequestSN = requestHeadObj.RequestSN, RequestTime = requestHeadObj.RequestTime, Version = requestHeadObj.Version };
+            var requestHeadStr = Request.Headers[Const.ROUTE_INFO];
+            var requestHeadDic = HttpHelper.GetFormDictionary(requestHeadStr);
 
-            CustomRouteData route = routeHelper.GetOptimalRoute(headData.BusinessCode, headData.Version, headData.RequestFrom);
+            requestHead = new RequestHead { BusinessCode = requestHeadDic["BusinessCode"], Ttl =Convert.ToInt32(requestHeadDic.GetValueOrDefault("Ttl","0")), Channel = requestHeadDic["Channel"], Version = requestHeadDic["Version"] };
+
+            CustomRouteData route = routeHelper.GetOptimalRoute(requestHead.BusinessCode, requestHead.Version, requestHead.Channel);
             if (route == null)
                 throw new Exception("请求路由不存在");
             optimalRoute = routeHelper.RoutingLoadBalance(route);
@@ -91,13 +90,11 @@ namespace MicroServices.Gateway.Controllers
         /// </summary>    
         string GeneralCacheKey()
         {
-            string key = string.Join("_", headData.RequestFrom, headData.BusinessCode, headData.Version);
-            var requestObj = JsonConvert.DeserializeObject<dynamic>(requestContent);
-            string requestBodyStr = Convert.ToString(requestObj.RequestBody);
-            if (!string.IsNullOrWhiteSpace(requestBodyStr))
+            string key = string.Join("_", requestHead.Channel, requestHead.BusinessCode, requestHead.Version);
+            if (!string.IsNullOrWhiteSpace(requestBody))
             {
-                var requestBodyObj = JsonConvert.DeserializeObject<Dictionary<string, object>>(requestBodyStr).OrderBy(o => o.Key);
-                foreach (var p in requestBodyObj)
+                var requestBodyDic = HttpHelper.GetFormDictionary(requestBody).OrderBy(o => o.Key);
+                foreach (var p in requestBodyDic)
                 {
                     key = string.Join("_", key, string.Join("_", p.Key, p.Value));
                 }
@@ -108,7 +105,7 @@ namespace MicroServices.Gateway.Controllers
         async Task<HttpResult> HandleRequest(CustomRouteData route)
         {
             HttpResult result = new HttpResult();
-            int expire = headData.Expire.GetValueOrDefault();
+            int expire = requestHead.Ttl.GetValueOrDefault();
 
             if (expire > 0)
             {
@@ -122,7 +119,7 @@ namespace MicroServices.Gateway.Controllers
                 }
                 else
                 {
-                    result = await HttpHelper.PostAsync(route.Handle, requestContent);
+                    result = await HttpHelper.PostAsync(route.Handle, requestBody);
                     if (result.HttpStatus == 200)
                     {
                         cache.Set(key, result.Content, TimeSpan.FromSeconds(expire));
@@ -132,7 +129,7 @@ namespace MicroServices.Gateway.Controllers
             }
             else
             {
-                result = await HttpHelper.PostAsync(route.Handle, requestContent);
+                result = await HttpHelper.PostAsync(route.Handle, requestBody);
                 fromCache = false;
             }
             return result;

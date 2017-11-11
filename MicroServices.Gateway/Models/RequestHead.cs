@@ -10,21 +10,12 @@ namespace MicroServices.Gateway.Models
         /// <summary>
         /// 请求渠道
         /// </summary>
-        public string RequestFrom { get; set; }
-        /// <summary>
-        /// 请求时间
-        /// </summary>
-        public string RequestTime { get; set; }
-
-        /// <summary>
-        /// 请求流水号
-        /// </summary>
-        public string RequestSN { get; set; }
+        public string Channel { get; set; }      
 
         /// <summary>
         /// 请求结果缓存时间
         /// </summary>
-        public int?  Expire { get; set; }
+        public int?  Ttl { get; set; }
 
         /// <summary>
         /// 业务编码
@@ -38,10 +29,8 @@ namespace MicroServices.Gateway.Models
 
         public RequestHead()
         {
-            Version = "1.0.0";
-            RequestSN = Guid.NewGuid().ToString();
-            RequestTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            Expire = 0;
+            Version = "1.0.0";                  
+            Ttl = 0;
         }
     }
 }
