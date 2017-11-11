@@ -240,3 +240,4 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+MicroServices.Gateway/MicroServices.Gateway.csproj.user
