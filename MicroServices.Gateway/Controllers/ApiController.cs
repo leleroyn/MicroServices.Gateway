@@ -55,15 +55,15 @@ namespace MicroServices.Gateway.Controllers
             if (routeSetting.RetryTimes > 0)
             {
                 var policyHandle = Policy.HandleResult<HttpResult>(o => o.HttpStatus != 200)
-                    .Retry(routeSetting.RetryTimes, (ex, count) =>
+                    .RetryAsync(routeSetting.RetryTimes, (ex, count) =>
                     {
                         logger.LogError("执行失败! 重试次数 {0}", count);
                         logger.LogError("异常来自 {0},错误码 {1}", ex.Result.Content, ex.Result.HttpStatus);
                     });
-                requestResult = policyHandle.Execute(() =>
+                requestResult =await policyHandle.ExecuteAsync(() =>
                 {
                     optimalRoute = GetLoadBalanceRoute(routeSetting);
-                    return HandleRequest(optimalRoute).Result;
+                    return HandleRequest(optimalRoute);
                 });
             }
             else
