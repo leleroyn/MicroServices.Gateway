@@ -10,8 +10,9 @@ namespace MicroServices.Gateway.Models
         public string Description { get; set; }
         public string BusinessCode { get; set; }
         public string Version { get; set; }
-        public string RequestFrom { get; set; }
+        public string Channel { get; set; }
         public string Handle { get; set; }
         public string MicroService { get; set; }
+        public int RetryTimes { get; set; }
     }
 }

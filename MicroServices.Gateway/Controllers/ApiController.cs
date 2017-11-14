@@ -13,6 +13,8 @@ using Newtonsoft.Json;
 using Microsoft.AspNetCore.Hosting;
 using System.Web;
 using System.IO;
+using Polly;
+using Microsoft.Extensions.Logging;
 
 namespace MicroServices.Gateway.Controllers
 {
@@ -27,31 +29,55 @@ namespace MicroServices.Gateway.Controllers
         private bool fromCache;
         private string requestBody;
         private string authorizationHeadValue;
+        private RouteHelper routeHelper;
+        private ILogger logger;
 
-        public ApiController(IMemoryCache cacheProvider, IHostingEnvironment hostingEnvironment)
+        public ApiController(IMemoryCache cacheProvider, IHostingEnvironment hostingEnvironment, ILoggerFactory loggerFactory)
         {
+            logger = loggerFactory.CreateLogger<ApiController>();            
             env = hostingEnvironment;
-            cache = cacheProvider;           
+            cache = cacheProvider;
+            routeHelper = new RouteHelper(env.ContentRootPath);
         }
 
         #region 对外接口
         [HttpGet]
         public string Get()
-        {           
+        {
             return string.Format("[{0}] {1}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), " Service is Online.");
         }
 
         [HttpPost]
         public async Task<string> Post()
         {
-            await GetRequestData(Request);
+            var routeSetting = await GetRequestData(Request);
+            var requestResult = new HttpResult();
+            if (routeSetting.RetryTimes > 0)
+            {
+                var policyHandle = Policy.HandleResult<HttpResult>(o => o.HttpStatus != 200)
+                    .Retry(routeSetting.RetryTimes, (ex, count) =>
+                    {
+                        logger.LogError("执行失败! 重试次数 {0}", count);
+                        logger.LogError("异常来自 {0},错误码 {1}", ex.Result.Content, ex.Result.HttpStatus);
+                    });
+                requestResult = policyHandle.Execute(() =>
+                {
+                    optimalRoute = GetLoadBalanceRoute(routeSetting);
+                    return HandleRequest(optimalRoute).Result;
+                });
+            }
+            else
+            {
+                optimalRoute = GetLoadBalanceRoute(routeSetting);
+                requestResult = await HandleRequest(optimalRoute);
+            }
 
-            var requestResult = await HandleRequest(optimalRoute);
             if (requestResult.HttpStatus != 200)
             {
                 Response.StatusCode = requestResult.HttpStatus;
             }
             return requestResult.Content;
+
         }
         #endregion
 
@@ -59,10 +85,8 @@ namespace MicroServices.Gateway.Controllers
         /// <summary>
         /// 获取请求信息
         /// </summary>
-        async Task GetRequestData(HttpRequest request)
+        private async Task<CustomRouteData> GetRequestData(HttpRequest request)
         {
-            RouteHelper routeHelper = new RouteHelper(env.ContentRootPath);
-
             string requestBodyStr = "";
             using (var buffer = new MemoryStream())
             {
@@ -77,12 +101,17 @@ namespace MicroServices.Gateway.Controllers
             var requestHeadStr = Request.Headers[Const.HEAD_NAME_ROUTE_INFO];
             var requestHeadDic = HttpHelper.GetFormDictionary(requestHeadStr);
 
-            requestHead = new RequestHead { BusinessCode = requestHeadDic["BusinessCode"], Ttl =Convert.ToInt32(requestHeadDic.GetValueOrDefault("Ttl","0")), Channel = requestHeadDic["Channel"], Version = requestHeadDic["Version"] };
+            requestHead = new RequestHead { BusinessCode = requestHeadDic["BusinessCode"], Ttl = Convert.ToInt32(requestHeadDic.GetValueOrDefault("Ttl", "0")), Channel = requestHeadDic.GetValueOrDefault("Channel",""), Version = requestHeadDic.GetValueOrDefault("Version","") };
 
             CustomRouteData route = routeHelper.GetOptimalRoute(requestHead.BusinessCode, requestHead.Version, requestHead.Channel);
             if (route == null)
                 throw new Exception("请求路由不存在");
-            optimalRoute = routeHelper.RoutingLoadBalance(route);
+            return route;
+        }
+
+        private CustomRouteData GetLoadBalanceRoute(CustomRouteData route)
+        {
+            return routeHelper.RoutingLoadBalance(route);
         }
 
         /// <summary>
@@ -119,7 +148,7 @@ namespace MicroServices.Gateway.Controllers
                 }
                 else
                 {
-                    result = await HttpHelper.PostAsync(route.Handle, requestBody);
+                    result = await HttpHelper.PostAsync(route.Handle, requestBody, authorizationHeadValue);
                     if (result.HttpStatus == 200)
                     {
                         cache.Set(key, result.Content, TimeSpan.FromSeconds(expire));
@@ -129,7 +158,7 @@ namespace MicroServices.Gateway.Controllers
             }
             else
             {
-                result = await HttpHelper.PostAsync(route.Handle, requestBody);
+                result = await HttpHelper.PostAsync(route.Handle, requestBody, authorizationHeadValue);
                 fromCache = false;
             }
             return result;

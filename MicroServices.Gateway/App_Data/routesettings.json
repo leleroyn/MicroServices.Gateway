@@ -5,15 +5,16 @@
       "Description": "绑卡",
       "BusinessCode": "BankServer.BindCard",
       "Handle": "BankServer/BindCard",
-      "RequestFrom": "WEB",
+      "Channel": "WEB",
       "Version": "1.0.0",
-      "MicroService": "bankserver"
+      "MicroService": "bankserver",
+      "RetryTimes": 3
     },
     {
-      "Description": "解绑",
+      "Description": "解绑",   
       "BusinessCode": "BankServer.UnBindCard",
       "Handle": "BankServer/UnBindCard",
-      "MicroService": "bankserver"
+      "MicroService": "bankserver"   
     }
   ]
 }

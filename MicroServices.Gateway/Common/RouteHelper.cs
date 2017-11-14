@@ -61,7 +61,7 @@ namespace MicroServices.Gateway.Common
                 BusinessCode = routeData.BusinessCode,
                 MicroService = routeData.MicroService,
                 Description = routeData.Description,
-                RequestFrom = routeData.RequestFrom,
+                Channel = routeData.Channel,
                 Version = routeData.Version
             };
             var hostData = GetHostDatas().FirstOrDefault(x => routeData.MicroService == x.ApplicationId);
@@ -99,19 +99,19 @@ namespace MicroServices.Gateway.Common
             }
             if (!string.IsNullOrEmpty(requestFrom))
             {
-                expressions.Add(x => string.Equals(x.RequestFrom, requestFrom, StringComparison.OrdinalIgnoreCase));
+                expressions.Add(x => string.Equals(x.Channel, requestFrom, StringComparison.OrdinalIgnoreCase));
             }
 
             routeList = expressions.Aggregate(routeList, (current, item) => current.Where(item.Compile()));
 
             if (routeList.Any())
             {
-                return routeList.OrderBy(x => x.Version).ThenBy(x => x.RequestFrom).FirstOrDefault();
+                return routeList.OrderBy(x => x.Version).ThenBy(x => x.Channel).FirstOrDefault();
             }
 
             return routes.Value
-                    .Where(x => string.IsNullOrEmpty(x.Version) || string.IsNullOrEmpty(x.RequestFrom))
-                    .OrderBy(x => x.Version).ThenBy(x => x.RequestFrom)
+                    .Where(x => string.IsNullOrEmpty(x.Version) || string.IsNullOrEmpty(x.Channel))
+                    .OrderBy(x => x.Version).ThenBy(x => x.Channel)
                     .FirstOrDefault();
         }
     }
