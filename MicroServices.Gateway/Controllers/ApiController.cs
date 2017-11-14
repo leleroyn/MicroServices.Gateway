@@ -69,10 +69,7 @@ namespace MicroServices.Gateway.Controllers
                 await Request.Body.CopyToAsync(buffer);
                 requestBodyStr = Encoding.UTF8.GetString(buffer.ToArray());
             }
-
-            requestBodyStr = HttpUtility.UrlDecode(requestBodyStr);
-            var base64Bits = Convert.FromBase64String(requestBodyStr);
-            requestBody = Encoding.UTF8.GetString(base64Bits);
+            requestBody = requestBodyStr;
 
             //Get authorization information in the request headers, it needs  send to the micro service.
             authorizationHeadValue = Request.Headers[Const.HEAD_NAME_AUTHORIZATION];
