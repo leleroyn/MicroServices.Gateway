@@ -8,9 +8,13 @@ namespace MicroServices.Gateway.Common
     public static class HttpHelper
     {
         private static HttpClient client = new HttpClient();
-        public static async Task<HttpResult> PostAsync(string url, string requestContent)
+        public static async Task<HttpResult> PostAsync(string url, string requestContent, string authorizationHeadValue = "")
         {
             HttpResult result = new HttpResult();
+            if (!string.IsNullOrWhiteSpace(authorizationHeadValue))
+            {
+                client.DefaultRequestHeaders.Add(Const.HEAD_NAME_AUTHORIZATION, authorizationHeadValue);
+            }
             var resp =  await client.PostAsync(url, new FormUrlEncodedContent(GetFormDictionary(requestContent)));           
             result.Content = await resp.Content.ReadAsStringAsync();
             result.HttpStatus = (int)resp.StatusCode;

@@ -7,6 +7,7 @@ namespace MicroServices.Gateway.Models
 {
     public class Const
     {
-        public  const string ROUTE_INFO = "RouteInfo";
+        public const string HEAD_NAME_ROUTE_INFO = "RouteInfo";
+        public const string HEAD_NAME_AUTHORIZATION = "Authorization";
     }
 }

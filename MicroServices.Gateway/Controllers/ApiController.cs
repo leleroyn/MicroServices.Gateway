@@ -25,7 +25,8 @@ namespace MicroServices.Gateway.Controllers
         private RequestHead requestHead;
         private CustomRouteData optimalRoute;
         private bool fromCache;
-        private string requestBody{get;  set;}
+        private string requestBody;
+        private string authorizationHeadValue;
 
         public ApiController(IMemoryCache cacheProvider, IHostingEnvironment hostingEnvironment)
         {
@@ -73,8 +74,10 @@ namespace MicroServices.Gateway.Controllers
             var base64Bits = Convert.FromBase64String(requestBodyStr);
             requestBody = Encoding.UTF8.GetString(base64Bits);
 
+            //Get authorization information in the request headers, it needs  send to the micro service.
+            authorizationHeadValue = Request.Headers[Const.HEAD_NAME_AUTHORIZATION];
 
-            var requestHeadStr = Request.Headers[Const.ROUTE_INFO];
+            var requestHeadStr = Request.Headers[Const.HEAD_NAME_ROUTE_INFO];
             var requestHeadDic = HttpHelper.GetFormDictionary(requestHeadStr);
 
             requestHead = new RequestHead { BusinessCode = requestHeadDic["BusinessCode"], Ttl =Convert.ToInt32(requestHeadDic.GetValueOrDefault("Ttl","0")), Channel = requestHeadDic["Channel"], Version = requestHeadDic["Version"] };
