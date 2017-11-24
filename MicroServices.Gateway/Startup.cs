@@ -27,7 +27,7 @@ namespace MicroServices.Gateway
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddOptions();
-            services.AddMemoryCache();   
+            services.AddMemoryCache();  
             services.AddMvc();            
         }
 
@@ -36,7 +36,7 @@ namespace MicroServices.Gateway
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-            }       
+            } 
             app.UseMvc();
         }
     }

@@ -16,6 +16,7 @@ using System.IO;
 using Polly;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
+using NLog;
 
 namespace MicroServices.Gateway.Controllers
 {
@@ -31,12 +32,11 @@ namespace MicroServices.Gateway.Controllers
         private string requestBody;
         private string authorizationHeadValue;
         private RouteHelper routeHelper;
-        private readonly ILogger<ApiController> _logger;
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
 
-        public ApiController(IMemoryCache cacheProvider, IHostingEnvironment hostingEnvironment, ILogger<ApiController> logger)
-        {
-            _logger = logger;
+        public ApiController(IMemoryCache cacheProvider, IHostingEnvironment hostingEnvironment)
+        {           
             env = hostingEnvironment;
             cache = cacheProvider;
             routeHelper = new RouteHelper(env.ContentRootPath);
@@ -59,19 +59,18 @@ namespace MicroServices.Gateway.Controllers
                 var policyHandle = Policy.HandleResult<HttpResult>(o => o.HttpStatus != 200)
                     .RetryAsync(routeSetting.RetryTimes, (ex, count) =>
                     {
-                        if (_logger.IsEnabled(LogLevel.Error))
-                        {
-                            _logger.LogError($"执行{routeSetting.BusinessCode}失败! 重试次数 {count}");
-                            _logger.LogError($"异常来自 {ex.Result.Content},错误码 {ex.Result.HttpStatus}");
-                        }
+
+                        logger.Error($"执行{routeSetting.BusinessCode}失败! 重试次数 {count}");
+                        logger.Error($"异常来自 {ex.Result.Content},错误码 {ex.Result.HttpStatus}");
+                       
                     });
                 requestResult = await policyHandle.ExecuteAsync(() =>
                  {
                      optimalRoute = GetLoadBalanceRoute(routeSetting);
-                     _logger.LogDebug($"begin request [{optimalRoute.Handle}],resquestHead:{ Request.Headers[Const.HEAD_NAME_ROUTE_INFO]} , requestBody:{requestBody} ,AuthorizationHead:{authorizationHeadValue}");
+                     logger.Debug($"begin request [{optimalRoute.Handle}],resquestHead:{ Request.Headers[Const.HEAD_NAME_ROUTE_INFO]} , requestBody:{requestBody} ,AuthorizationHead:{authorizationHeadValue}");
                      return HandleRequest(optimalRoute);                    
                  });
-                _logger.LogDebug($"end request [{optimalRoute.Handle}],from cache {fromCache.ToString()}");
+                logger.Debug($"end request [{optimalRoute.Handle}],from cache {fromCache.ToString()}");
             }
             else
             {

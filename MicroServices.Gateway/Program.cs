@@ -7,15 +7,15 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using NLog.Web;
+using NLog;
 
 namespace MicroServices.Gateway
 {
     public class Program
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         public static void Main(string[] args)
-        {           
-            var logger = NLogBuilder.ConfigureNLog("NLog.config").GetCurrentClassLogger();
+        {  
             try
             {              
                 BuildWebHost(args).Run();
@@ -31,7 +31,6 @@ namespace MicroServices.Gateway
         public static IWebHost BuildWebHost(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
                 .UseStartup<Startup>()
-                .UseNLog()
                 .Build();
     }
 }
