@@ -8,8 +8,7 @@ namespace MicroServices.Gateway.Models
     public class ServiceHostData
     {
         public string Description { get; set; }
-        public string ApplicationId { get; set; }
-        public string ApplicationKey { get; set; }
+        public string MicroService { get; set; }
         public MicroServiceRandomObject[] Hosts { get; set; }
     }
 }

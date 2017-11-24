@@ -15,6 +15,7 @@ using System.Web;
 using System.IO;
 using Polly;
 using Microsoft.Extensions.Logging;
+using System.Net.Http;
 
 namespace MicroServices.Gateway.Controllers
 {
@@ -30,11 +31,12 @@ namespace MicroServices.Gateway.Controllers
         private string requestBody;
         private string authorizationHeadValue;
         private RouteHelper routeHelper;
-        private ILogger logger;
+        private readonly ILogger<ApiController> _logger;
 
-        public ApiController(IMemoryCache cacheProvider, IHostingEnvironment hostingEnvironment, ILoggerFactory loggerFactory)
+
+        public ApiController(IMemoryCache cacheProvider, IHostingEnvironment hostingEnvironment, ILogger<ApiController> logger)
         {
-            logger = loggerFactory.CreateLogger<ApiController>();            
+            _logger = logger;
             env = hostingEnvironment;
             cache = cacheProvider;
             routeHelper = new RouteHelper(env.ContentRootPath);
@@ -57,14 +59,19 @@ namespace MicroServices.Gateway.Controllers
                 var policyHandle = Policy.HandleResult<HttpResult>(o => o.HttpStatus != 200)
                     .RetryAsync(routeSetting.RetryTimes, (ex, count) =>
                     {
-                        logger.LogError("执行失败! 重试次数 {0}", count);
-                        logger.LogError("异常来自 {0},错误码 {1}", ex.Result.Content, ex.Result.HttpStatus);
+                        if (_logger.IsEnabled(LogLevel.Error))
+                        {
+                            _logger.LogError($"执行{routeSetting.BusinessCode}失败! 重试次数 {count}");
+                            _logger.LogError($"异常来自 {ex.Result.Content},错误码 {ex.Result.HttpStatus}");
+                        }
                     });
-                requestResult =await policyHandle.ExecuteAsync(() =>
-                {
-                    optimalRoute = GetLoadBalanceRoute(routeSetting);
-                    return HandleRequest(optimalRoute);
-                });
+                requestResult = await policyHandle.ExecuteAsync(() =>
+                 {
+                     optimalRoute = GetLoadBalanceRoute(routeSetting);
+                     _logger.LogDebug($"begin request [{optimalRoute.Handle}],resquestHead:{ Request.Headers[Const.HEAD_NAME_ROUTE_INFO]} , requestBody:{requestBody} ,AuthorizationHead:{authorizationHeadValue}");
+                     return HandleRequest(optimalRoute);                    
+                 });
+                _logger.LogDebug($"end request [{optimalRoute.Handle}],from cache {fromCache.ToString()}");
             }
             else
             {
@@ -101,7 +108,7 @@ namespace MicroServices.Gateway.Controllers
             var requestHeadStr = Request.Headers[Const.HEAD_NAME_ROUTE_INFO];
             var requestHeadDic = HttpHelper.GetFormDictionary(requestHeadStr);
 
-            requestHead = new RequestHead { BusinessCode = requestHeadDic["BusinessCode"], Ttl = Convert.ToInt32(requestHeadDic.GetValueOrDefault("Ttl", "0")), Channel = requestHeadDic.GetValueOrDefault("Channel",""), Version = requestHeadDic.GetValueOrDefault("Version","") };
+            requestHead = new RequestHead { BusinessCode = requestHeadDic["BusinessCode"], Ttl = Convert.ToInt32(requestHeadDic.GetValueOrDefault("Ttl", "0")), Channel = requestHeadDic.GetValueOrDefault("Channel", ""), Version = requestHeadDic.GetValueOrDefault("Version", "") };
 
             CustomRouteData route = routeHelper.GetOptimalRoute(requestHead.BusinessCode, requestHead.Version, requestHead.Channel);
             if (route == null)
@@ -136,7 +143,7 @@ namespace MicroServices.Gateway.Controllers
             HttpResult result = new HttpResult();
             int expire = requestHead.Ttl.GetValueOrDefault();
 
-            if (expire > 0)
+            if (expire > 0 && route.Cache)
             {
                 string key = GeneralCacheKey();
                 var cacheValue = cache.Get(key);

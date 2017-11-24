@@ -14,5 +14,6 @@ namespace MicroServices.Gateway.Models
         public string Handle { get; set; }
         public string MicroService { get; set; }
         public int RetryTimes { get; set; }
+        public bool Cache { get; set; }
     }
 }

@@ -28,7 +28,7 @@ namespace MicroServices.Gateway
         {
             services.AddOptions();
             services.AddMemoryCache();   
-            services.AddMvc();
+            services.AddMvc();            
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
@@ -36,8 +36,7 @@ namespace MicroServices.Gateway
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-            }
-
+            }       
             app.UseMvc();
         }
     }

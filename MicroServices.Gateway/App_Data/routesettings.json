@@ -3,12 +3,13 @@
     //-- 银行接口
     {
       "Description": "绑卡",
-      "BusinessCode": "BankServer.BindCard",
-      "Handle": "BankServer/BindCard",
+      "BusinessCode": "BankServer.BindCard",//客户请求的业务编码
+      "Handle": "BankServer/BindCard",//微服务的处理地址
       "Channel": "WEB",
       "Version": "1.0.0",
-      "MicroService": "bankserver",
-      "RetryTimes": 3
+      "MicroService": "bankserver",//调用的微服务
+      "RetryTimes": 3, //远程调用失败时重试的次数
+      "Cache": false //是否允许缓存，配置为false时，将忽略客户请求的Ttl参数
     },
     {
       "Description": "解绑",   

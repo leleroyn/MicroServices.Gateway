@@ -64,7 +64,7 @@ namespace MicroServices.Gateway.Common
                 Channel = routeData.Channel,
                 Version = routeData.Version
             };
-            var hostData = GetHostDatas().FirstOrDefault(x => routeData.MicroService == x.ApplicationId);
+            var hostData = GetHostDatas().FirstOrDefault(x => routeData.MicroService == x.MicroService);
             if (hostData != null)
             {
                 var randomHost = RandomHelper.GetRandomList(hostData.Hosts.ToList(), 1).First();

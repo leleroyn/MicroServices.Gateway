@@ -2,8 +2,7 @@
   "HostTable": [
     {
       "Description": "bankserver",
-      "ApplicationId": "bankserver",
-      "ApplicationKey": "ucs2017",
+      "MicroService": "bankserver",
       "Hosts": [
         {
           "ServiceUrl": "http://xcbankservice1.ucsmy.com/bankserver/",
